@@ -162,94 +162,6 @@ html.lenis { height: auto; }
   border-left: 1px solid rgba(255,255,255,0.14);
 }
 
-/* ═══════════════════════════════════════
-   TIMER — top-level fixed button, lives
-   outside all GSAP sections, max z-index
-═══════════════════════════════════════ */
-.presentation-timer {
-  position: fixed;
-  top: 1rem;
-  right: 1.25rem;
-  z-index: 2147483647;   /* MAX_INT — above every layer */
-  pointer-events: auto;
-  cursor: pointer;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-
-  padding: 0.65rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(16,16,16,0.78);
-  color: white;
-
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06) inset;
-
-  font-family: 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
-  appearance: none;
-  -webkit-appearance: none;
-  outline: none;
-  user-select: none;
-  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-}
-.presentation-timer:hover {
-  background: rgba(24,24,24,0.88);
-  border-color: rgba(255,255,255,0.28);
-}
-.presentation-timer:focus-visible {
-  outline: 2px solid #f0a820;
-  outline-offset: 3px;
-}
-.timer-light {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.35);
-  flex-shrink: 0;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-.timer-time {
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.95);
-}
-.timer-action {
-  font-size: 0.55rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #f0a820;
-  padding-left: 0.5rem;
-  border-left: 1px solid rgba(255,255,255,0.14);
-  margin-left: 0.1rem;
-  transition: color 0.25s ease;
-}
-/* Running state — green blinking dot */
-.presentation-timer.running .timer-light {
-  background: #30d158;
-  box-shadow: 0 0 14px rgba(48,209,88,0.95), 0 0 28px rgba(48,209,88,0.35);
-  animation: timerBlink 1s ease-in-out infinite;
-}
-.presentation-timer.running .timer-action { color: #30d158; }
-/* Ended state — amber glow */
-.presentation-timer.ended .timer-light {
-  background: #ff9f0a;
-  box-shadow: 0 0 16px rgba(255,159,10,0.95);
-}
-.presentation-timer.ended {
-  border-color: rgba(255,159,10,0.45);
-  cursor: default;
-}
-.presentation-timer.ended .timer-action { color: #ff9f0a; }
-/* Blink animation for running dot */
-@keyframes timerBlink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.25; transform: scale(1.55); }
-}
-
 /* ══════════════════════════════════════
    SHARED EDITORIAL PRIMITIVES
 ══════════════════════════════════════ */
@@ -1284,7 +1196,6 @@ pointer-events: none;
   .data-label { display: none; }
   .top-nav { padding: 0.45rem 0.9rem; }
   .top-nav-meta { display: none; }
-  .timer-action { display: none; }
   .sources-list { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
@@ -1297,7 +1208,6 @@ pointer-events: none;
   .identity-logo { width: 1.75rem; height: 1.2rem; font-size: 0.5rem; }
   .identity-main { font-size: 0.66rem; }
   .identity-meta { display: none; }
-  .presentation-timer { top: 0.75rem; right: 0.75rem; padding: 0.55rem 0.7rem; }
   .hero-ticker { bottom: 4.8rem; }
 }
 
@@ -2278,87 +2188,6 @@ window.addEventListener('load', () => {
 });
 
 } // end !reducedMotion
-</script>
-
-<!-- ════════════════════════════════════════
-  TIMER — placed as last child of body, outside
-  all GSAP pinned/animated sections so nothing
-  can block pointer events. z-index: MAX_INT.
-════════════════════════════════════════ -->
-<button
-  class="presentation-timer"
-  id="presentationTimer"
-  type="button"
-  aria-label="Start presentation timer"
->
-  <span class="timer-light" id="timerLight"></span>
-  <span class="timer-time" id="timerTime">04:00</span>
-  <span class="timer-action" id="timerAction">START</span>
-</button>
-
-<script>
-// Isolated timer script — runs immediately, no dependencies on GSAP
-(function () {
-  var btn    = document.getElementById('presentationTimer');
-  var timeEl = document.getElementById('timerTime');
-  var actEl  = document.getElementById('timerAction');
-
-  if (!btn || !timeEl || !actEl) return;
-
-  var totalSeconds = 240;
-  var interval     = null;
-  var running      = false;
-
-  function fmt(s) {
-    if (s < 0) s = 0;
-    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-  }
-
-  function render() { timeEl.textContent = fmt(totalSeconds); }
-
-  function startTimer() {
-    if (interval || totalSeconds <= 0) return;
-    running = true;
-    btn.classList.add('running');
-    btn.classList.remove('ended');
-    actEl.textContent = 'LIVE';
-    btn.setAttribute('aria-label', 'Pause timer');
-
-    interval = setInterval(function () {
-      totalSeconds--;
-      render();
-      if (totalSeconds <= 0) {
-        totalSeconds = 0;
-        clearInterval(interval);
-        interval = null;
-        running  = false;
-        btn.classList.remove('running');
-        btn.classList.add('ended');
-        actEl.textContent = 'DONE';
-        btn.setAttribute('aria-label', 'Timer ended');
-      }
-    }, 1000);
-  }
-
-  function pauseTimer() {
-    running = false;
-    clearInterval(interval);
-    interval = null;
-    btn.classList.remove('running');
-    actEl.textContent = 'RESUME';
-    btn.setAttribute('aria-label', 'Resume timer');
-  }
-
-  btn.addEventListener('click', function (e) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    console.log('[timer] clicked — running:', running, 'seconds:', totalSeconds);
-    if (totalSeconds <= 0) return;
-    running ? pauseTimer() : startTimer();
-  });
-
-  render();
-}());
 </script>
 
 </body>
